@@ -30,6 +30,17 @@
         .btn-style:hover { transform: scale(1.05); }
         .btn-style:active { transform: scale(0.95); } 
 
+        /* NÚT ĐIỀU KHIỂN NHẠC (MỚI) */
+        .music-control {
+            position: fixed; top: 20px; right: 20px; z-index: 1000;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #ff4d6d;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
         /* --- TRANG 1: THIỆP --- */
         .card-envelope {
             background: #fffdf9; padding: 30px; border-radius: 15px; border: 2px solid #ffe0e9;
@@ -69,7 +80,6 @@
             margin: 20px auto; border-radius: 10px; overflow: hidden; 
             box-shadow: 0 10px 20px rgba(0,0,0,0.2); 
             max-width: 90vw; 
-            /* Ngăn chặn hành động mặc định của trình duyệt trong vùng này */
             touch-action: none; 
             -webkit-user-select: none;
             user-select: none;
@@ -80,7 +90,6 @@
         canvas { 
             position: relative; z-index: 1; 
             cursor: crosshair; 
-            /* Quan trọng: Ngăn trình duyệt bắt sự kiện vuốt để back/scroll */
             touch-action: none; 
         }
 
@@ -121,6 +130,11 @@
     </style>
 </head>
 <body>
+    
+    <audio id="bgMusic" loop>
+        <source src="tba.mp3" type="audio/mpeg">
+    </audio>
+    <div id="musicControl" class="music-control" onclick="toggleMusic()">🔇</div>
 
     <div id="step1" class="screen active">
         <div class="card-envelope">
@@ -130,7 +144,7 @@
                 Năm tới chắc cũng có vất vả 🙄, nhưng rồi sẽ vượt qua được thui.
             </p>
         </div>
-        <button class="btn-style" onclick="goToGame()">Tiếp theo ➔</button>
+        <button class="btn-style" onclick="startExperience()">Tiếp theo ➔</button>
     </div>
 
     <div id="step2" class="screen">
@@ -157,6 +171,39 @@
     </div>
 
     <script>
+        // --- XỬ LÝ NHẠC NỀN ---
+        const bgMusic = document.getElementById('bgMusic');
+        const musicControl = document.getElementById('musicControl');
+        let isMusicPlaying = false;
+
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                bgMusic.pause();
+                musicControl.innerText = "🔇";
+                isMusicPlaying = false;
+            } else {
+                bgMusic.play().then(() => {
+                    musicControl.innerText = "🔊";
+                    isMusicPlaying = true;
+                }).catch(e => console.log("Chưa thể phát nhạc: ", e));
+            }
+        }
+
+        // Hàm này được gọi khi bấm nút ở trang đầu tiên
+        // Để "đánh lừa" trình duyệt rằng người dùng đã tương tác, cho phép phát nhạc
+        function startExperience() {
+            // Thử phát nhạc
+            bgMusic.play().then(() => {
+                musicControl.innerText = "🔊";
+                isMusicPlaying = true;
+            }).catch(e => {
+                console.log("Autoplay bị chặn, người dùng cần bấm nút loa thủ công");
+            });
+
+            // Chuyển trang
+            goToGame();
+        }
+
         // --- CẤU HÌNH ---
         const SPECIAL_PRIZE = "Một đòi hỏi bất kỳ trong khả năng";
         const wishes = [
@@ -316,7 +363,6 @@
             const btn = document.getElementById('btn-confirm');
             btn.style.display = 'none'; 
 
-            // Set kích thước canvas
             canvas.width = wrapper.offsetWidth;
             canvas.height = wrapper.offsetHeight;
 
@@ -328,17 +374,15 @@
             ctx.textAlign = "center";
             ctx.fillText("Cào lớp bạc đi...", canvas.width/2, canvas.height/2 + 5);
 
-            // Cấu hình nét vẽ cho mượt
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.lineWidth = 40; // Nét to để cào nhanh
+            ctx.lineWidth = 40; 
             ctx.globalCompositeOperation = 'destination-out';
 
             let isDrawing = false;
             let lastX = 0;
             let lastY = 0;
 
-            // Hàm lấy toạ độ chính xác (Touch & Mouse)
             const getPos = (e) => {
                 const rect = canvas.getBoundingClientRect();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -350,7 +394,7 @@
             };
 
             const startDraw = (e) => {
-                e.preventDefault(); // Ngăn cuộn trang
+                e.preventDefault(); 
                 isDrawing = true;
                 const pos = getPos(e);
                 lastX = pos.x;
@@ -359,7 +403,7 @@
 
             const moveDraw = (e) => {
                 if (!isDrawing) return;
-                e.preventDefault(); // CỰC KỲ QUAN TRỌNG ĐỂ KHÔNG BỊ SCROLL
+                e.preventDefault(); 
                 
                 const pos = getPos(e);
                 
@@ -368,7 +412,6 @@
                 ctx.lineTo(pos.x, pos.y);
                 ctx.stroke();
 
-                // Cập nhật toạ độ cũ
                 lastX = pos.x;
                 lastY = pos.y;
             };
@@ -378,13 +421,10 @@
                 btn.style.display = 'block';
             };
 
-            // Gán sự kiện
             canvas.addEventListener('mousedown', startDraw);
             canvas.addEventListener('touchstart', startDraw, { passive: false });
-
             canvas.addEventListener('mousemove', moveDraw);
             canvas.addEventListener('touchmove', moveDraw, { passive: false });
-
             canvas.addEventListener('mouseup', endDraw);
             canvas.addEventListener('touchend', endDraw);
         }
