@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gửi chị Nguyên</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- CÀI ĐẶT CƠ BẢN --- */
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; background: #fff0f3; overflow: hidden; touch-action: manipulation; }
+        .artistic-font { font-family: 'HLT Aphroditeslimpro', 'Dancing Script', cursive; color: #d63384; }
+        
+        /* Màn hình */
+        .screen {
+            display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; transition: opacity 0.5s; padding: 15px; box-sizing: border-box;
+        }
+        .active { display: flex; z-index: 10; }
+
+        /* Nút bấm */
+        .btn-style {
+            margin-top: 20px; padding: 12px 30px; border-radius: 30px; border: none;
+            background: linear-gradient(45deg, #ff4d6d, #ff8fa3); color: white;
+            font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255,77,109,0.4);
+            z-index: 100; transition: transform 0.2s;
+        }
+        .btn-style:hover { transform: scale(1.05); }
+        .btn-style:active { transform: scale(0.95); } 
+
+        /* --- TRANG 1: THIỆP --- */
+        .card-envelope {
+            background: #fffdf9; padding: 30px; border-radius: 15px; border: 2px solid #ffe0e9;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 500px; width: 100%; position: relative;
+            box-sizing: border-box;
+        }
+        .card-envelope::before { content: '🌸'; position: absolute; top: 10px; left: 10px; font-size: 20px; }
+        .card-envelope::after { content: '🌸'; position: absolute; bottom: 10px; right: 10px; font-size: 20px; }
+
+        /* --- TRANG 2: KHU VỰC BÀI --- */
+        #game-area {
+            position: relative; width: 100%; height: 65vh; 
+            display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 10px;
+            overflow: hidden; 
+        }
+        
+        .card-item {
+            width: 70px; height: 100px;
+            background: linear-gradient(135deg, #e63946, #d62828);
+            border: 2px solid #ffd700; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 30px; color: #ffd700; cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            user-select: none; -webkit-tap-highlight-color: transparent;
+            transition: transform 0.2s; 
+            z-index: 5;
+        }
+
+        .card-item.locked { filter: grayscale(0.5); cursor: not-allowed; }
+        @media (hover: hover) {
+            .card-item:hover { z-index: 1000; transform: scale(1.2); border-color: white; }
+        }
+
+        /* --- TRANG 3: CÀO (ĐÃ TỐI ƯU CẢM ỨNG) --- */
+        #scratch-wrapper { 
+            position: relative; width: 300px; height: 150px; 
+            margin: 20px auto; border-radius: 10px; overflow: hidden; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); 
+            max-width: 90vw; 
+            /* Ngăn chặn hành động mặc định của trình duyệt trong vùng này */
+            touch-action: none; 
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .prize-bg { position: absolute; width: 100%; height: 100%; background: #ff9a9e; display: flex; justify-content: center; align-items: center; z-index: 0; }
+        .prize-content { color: white; font-weight: bold; font-size: 1.4rem; padding: 10px; word-break: break-word; }
+        
+        canvas { 
+            position: relative; z-index: 1; 
+            cursor: crosshair; 
+            /* Quan trọng: Ngăn trình duyệt bắt sự kiện vuốt để back/scroll */
+            touch-action: none; 
+        }
+
+        /* --- TRANG 4: KẾT QUẢ --- */
+        .final-list { list-style: none; padding: 0; margin: 20px 0; width: 100%; }
+        .final-list li { 
+            background: white; padding: 12px; margin: 8px auto; 
+            width: 90%; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            color: #d63384; font-weight: bold; font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .special-prize {
+            background: linear-gradient(135deg, #fff8db, #ffd700) !important;
+            border: 2px solid #b8860b !important;
+            color: #d35400 !important;
+            font-size: 1.3rem !important;
+            text-shadow: 0px 0px 2px rgba(255,255,255,0.8);
+            animation: goldGlow 1.5s infinite alternate;
+        }
+
+        @keyframes goldGlow {
+            from { box-shadow: 0 0 5px #ffd700; transform: scale(1); }
+            to { box-shadow: 0 0 20px #ffd700, 0 0 10px #ff8c00; transform: scale(1.03); }
+        }
+
+        /* --- RESPONSIVE MOBILE --- */
+        @media (max-width: 600px) {
+            .artistic-font { font-size: 1.5rem !important; }
+            h1.artistic-font { font-size: 2.2rem !important; }
+            h2.artistic-font { font-size: 1.8rem !important; }
+            .card-envelope { padding: 20px; }
+            .greeting-body { font-size: 1.2rem !important; }
+            .card-item { width: 50px; height: 75px; font-size: 20px; border-width: 1.5px; }
+            #game-area { height: 60vh; gap: 8px; }
+            .btn-style { font-size: 1rem; padding: 10px 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="step1" class="screen active">
+        <div class="card-envelope">
+            <h1 class="artistic-font">Dear Nguyên sàn,</h1>
+            <p class="artistic-font greeting-body" style="font-size: 1.5rem; line-height: 1.6;">
+                Năm 2025 chị vất vả rồi, chúng ta đều biết chị iu đã rất cố gắng.<br>
+                Năm tới chắc cũng có vất vả 🙄, nhưng rồi sẽ vượt qua được thui.
+            </p>
+        </div>
+        <button class="btn-style" onclick="goToGame()">Tiếp theo ➔</button>
+    </div>
+
+    <div id="step2" class="screen">
+        <h2 id="pick-title" class="artistic-font" style="font-size: 2rem;">Bạn có 2 lần chọn</h2>
+        <div id="game-area"></div>
+        <button id="btn-start-fly" class="btn-style" onclick="startPhysicsLoop()">BẮT ĐẦU</button>
+        <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">(Nhấn bắt đầu để bài bay lên)</p>
+    </div>
+
+    <div id="step3" class="screen">
+        <h2 class="artistic-font">Cào để xem kết quả</h2>
+        <div id="scratch-wrapper">
+            <div class="prize-bg"><div class="prize-content" id="prize-result">???</div></div>
+            <canvas id="scratchCanvas" width="300" height="150"></canvas>
+        </div>
+        <button id="btn-confirm" class="btn-style" style="display:none;" onclick="finishScratch()">NHẬN QUÀ</button>
+    </div>
+
+    <div id="step4" class="screen">
+        <h1 class="artistic-font" style="font-size: 2.5rem;">Chúc Mừng Năm Mới 2026! 🎇</h1>
+        <p>Chị Nguyên đã nhận được:</p>
+        <ul id="final-results" class="final-list"></ul>
+        <p class="artistic-font" style="font-size: 1.3rem; margin-top: 20px;">Mong mọi điều tốt đẹp nhất sẽ đến với chị.</p>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH ---
+        const SPECIAL_PRIZE = "Một đòi hỏi bất kỳ trong khả năng";
+        const wishes = [
+            "50.000đ", "10.000đ", "20.000đ", 
+            "10.000đ", "10.000đ", "30.000đ",
+            "100.000đ", "40.000đ", "20.000đ", 
+            SPECIAL_PRIZE 
+        ];
+        
+        let remainingPicks = 2;
+        let collectedPrizes = [];
+        let animationFrameId;
+        let flyingObjects = []; 
+        let cardWidth = 70;
+        let cardHeight = 100;
+
+        // --- ĐIỀU HƯỚNG ---
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => {
+                s.classList.remove('active');
+                s.style.opacity = 0;
+            });
+            const screen = document.getElementById(id);
+            screen.classList.add('active');
+            setTimeout(() => screen.style.opacity = 1, 100);
+        }
+
+        function goToGame() {
+            switchScreen('step2');
+            initCardsGrid();
+        }
+
+        // --- LOGIC GAME ---
+        function initCardsGrid() {
+            const area = document.getElementById('game-area');
+            if (area.children.length === 0) {
+                for (let i = 0; i < 10; i++) {
+                    let card = document.createElement('div');
+                    card.className = 'card-item locked'; 
+                    card.innerHTML = '🧧';
+                    card.id = `card-${i}`;
+                    
+                    const handleTap = (e) => { 
+                        if(!card.classList.contains('locked')) e.preventDefault(); 
+                        pickCard(card); 
+                    };
+                    card.addEventListener('mousedown', handleTap);
+                    card.addEventListener('touchstart', handleTap);
+                    
+                    area.appendChild(card);
+                }
+            } else {
+                resetToGrid();
+            }
+        }
+
+        function startPhysicsLoop() {
+            if (remainingPicks === 0) return;
+            document.getElementById('btn-start-fly').style.display = 'none';
+            
+            const area = document.getElementById('game-area');
+            const cards = Array.from(document.querySelectorAll('.card-item'));
+            flyingObjects = [];
+
+            if (cards.length > 0) {
+                cardWidth = cards[0].offsetWidth;
+                cardHeight = cards[0].offsetHeight;
+            }
+
+            cards.forEach(card => {
+                if (card.style.display === 'none') return; 
+
+                const rect = card.getBoundingClientRect();
+                const areaRect = area.getBoundingClientRect();
+                const startX = rect.left - areaRect.left;
+                const startY = rect.top - areaRect.top;
+
+                card.style.position = 'absolute';
+                card.style.left = startX + 'px';
+                card.style.top = startY + 'px';
+                card.style.margin = '0'; 
+                card.classList.remove('locked');
+
+                let speedFactor = window.innerWidth < 600 ? 3 : 5;
+                let dx = (Math.random() - 0.5) * speedFactor; 
+                let dy = (Math.random() - 0.5) * speedFactor; 
+                
+                if (Math.abs(dx) < 1) dx = dx > 0 ? 1 : -1; 
+
+                flyingObjects.push({ el: card, x: startX, y: startY, dx: dx, dy: dy });
+            });
+
+            animate();
+        }
+
+        function animate() {
+            const area = document.getElementById('game-area');
+            const maxX = area.clientWidth - cardWidth;
+            const maxY = area.clientHeight - cardHeight;
+
+            flyingObjects.forEach(obj => {
+                obj.x += obj.dx;
+                obj.y += obj.dy;
+                
+                if (obj.x <= 0 || obj.x >= maxX) obj.dx *= -1;
+                if (obj.y <= 0 || obj.y >= maxY) obj.dy *= -1;
+                
+                obj.x = Math.max(0, Math.min(obj.x, maxX));
+                obj.y = Math.max(0, Math.min(obj.y, maxY));
+                
+                obj.el.style.left = obj.x + 'px';
+                obj.el.style.top = obj.y + 'px';
+            });
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function pickCard(cardElement) {
+            if (cardElement.classList.contains('locked')) return;
+            cancelAnimationFrame(animationFrameId);
+
+            let prize;
+            if (collectedPrizes.length === 0) {
+                prize = wishes[Math.floor(Math.random() * wishes.length)];
+            } else {
+                const firstPrize = collectedPrizes[0];
+                if (firstPrize === SPECIAL_PRIZE) {
+                    prize = wishes[Math.floor(Math.random() * wishes.length)];
+                } else {
+                    prize = SPECIAL_PRIZE; 
+                }
+            }
+            
+            document.getElementById('prize-result').innerText = prize;
+            window.currentCard = cardElement;
+            window.currentPrize = prize;
+
+            switchScreen('step3');
+            setupScratch();
+        }
+
+        function resetToGrid() {
+            const cards = document.querySelectorAll('.card-item');
+            cards.forEach(card => {
+                card.style.position = '';
+                card.style.left = '';
+                card.style.top = '';
+                card.style.margin = '';
+                card.classList.add('locked');
+            });
+        }
+
+        // --- CÀO THẺ (CƠ CHẾ MỚI MƯỢT MÀ) ---
+        function setupScratch() {
+            const canvas = document.getElementById('scratchCanvas');
+            const wrapper = document.getElementById('scratch-wrapper');
+            const ctx = canvas.getContext('2d');
+            const btn = document.getElementById('btn-confirm');
+            btn.style.display = 'none'; 
+
+            // Set kích thước canvas
+            canvas.width = wrapper.offsetWidth;
+            canvas.height = wrapper.offsetHeight;
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#C0C0C0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#666';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = "center";
+            ctx.fillText("Cào lớp bạc đi...", canvas.width/2, canvas.height/2 + 5);
+
+            // Cấu hình nét vẽ cho mượt
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 40; // Nét to để cào nhanh
+            ctx.globalCompositeOperation = 'destination-out';
+
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+
+            // Hàm lấy toạ độ chính xác (Touch & Mouse)
+            const getPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            };
+
+            const startDraw = (e) => {
+                e.preventDefault(); // Ngăn cuộn trang
+                isDrawing = true;
+                const pos = getPos(e);
+                lastX = pos.x;
+                lastY = pos.y;
+            };
+
+            const moveDraw = (e) => {
+                if (!isDrawing) return;
+                e.preventDefault(); // CỰC KỲ QUAN TRỌNG ĐỂ KHÔNG BỊ SCROLL
+                
+                const pos = getPos(e);
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+
+                // Cập nhật toạ độ cũ
+                lastX = pos.x;
+                lastY = pos.y;
+            };
+
+            const endDraw = () => {
+                isDrawing = false;
+                btn.style.display = 'block';
+            };
+
+            // Gán sự kiện
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('touchstart', startDraw, { passive: false });
+
+            canvas.addEventListener('mousemove', moveDraw);
+            canvas.addEventListener('touchmove', moveDraw, { passive: false });
+
+            canvas.addEventListener('mouseup', endDraw);
+            canvas.addEventListener('touchend', endDraw);
+        }
+
+        function finishScratch() {
+            collectedPrizes.push(window.currentPrize);
+            remainingPicks--;
+
+            window.currentCard.style.display = 'none'; 
+
+            if (remainingPicks > 0) {
+                document.getElementById('pick-title').innerText = `Bạn còn ${remainingPicks} lần chọn`;
+                document.getElementById('btn-start-fly').style.display = 'inline-block';
+                document.getElementById('btn-start-fly').innerText = "Tiếp tục xáo bài";
+                switchScreen('step2');
+                resetToGrid(); 
+            } else {
+                showFinalResult();
+            }
+        }
+
+        function showFinalResult() {
+            switchScreen('step4');
+            const list = document.getElementById('final-results');
+            list.innerHTML = '';
+            
+            collectedPrizes.forEach(p => {
+                let li = document.createElement('li');
+                if (p === SPECIAL_PRIZE) {
+                    li.innerHTML = "👑 " + p + " 👑";
+                    li.classList.add('special-prize'); 
+                } else {
+                    li.innerText = "✨ " + p;
+                }
+                list.appendChild(li);
+            });
+            startFireworks();
+        }
+
+        function startFireworks() {
+            var duration = 15 * 1000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+    </script>
+</body>
+</html>
